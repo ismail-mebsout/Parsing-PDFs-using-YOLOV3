@@ -34,7 +34,7 @@ To do so, we carry out the following steps:
 All python requirements are included in the file package.txt, all you need to do is run the following command line:
 
 ```bash
-pip install -r packages.text
+pip install -r packages.txt
 ```
 
 ## Prediction
