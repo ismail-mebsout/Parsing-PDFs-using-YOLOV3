@@ -46,4 +46,8 @@ It takes two arguments:
 * **pdf_path**: where the original pdf file is located
 * **page**: the desired page to parse
 
+## Examples
+
+<center><img src="imgs/examples.jpg"></center>
+
 **NB**: following the same steps, we can train the algorithms to detect `any other object` in a pdf page such as graphics and images which can be extracted from the image page.
