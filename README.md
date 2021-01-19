@@ -19,7 +19,7 @@ If the primitive pdf page is image-based, we can use `ocrmypdf` to turn into a t
 <center><img src="imgs/correction.png"></center>
 
 ## Tables detection
-The algorithm which allows the detection of tables, is nothing but yolov3, I advise your to read my previous [article](https://www.ismailmebsout.com/Convolutional%20Neural%20Network%20-%20Part%202/) about objects detection.
+The algorithm which allows the detection of tables, is nothing but yolov3, I advise your to read my previous [article](https://medium.com/swlh/object-detection-face-recognition-algorithms-146fec385205) about objects detection.
 We finetune the algorithm to detect tables and retrain all the architecture.
 To do so, we carry out the following steps:
 * Create a training database using [`Makesense`](https://www.makesense.ai/) a tool which enables an export in yolo's format:
