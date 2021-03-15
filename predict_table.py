@@ -1,7 +1,7 @@
 #%%
 import os
 import copy
-import camelot
+from camelot import io as camelot
 
 import numpy as np
 import pandas as pd 
