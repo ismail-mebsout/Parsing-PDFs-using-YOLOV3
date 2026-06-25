@@ -1,53 +1,154 @@
-# Parsing PDFs using YOLOV3
+# PDF Table Extractor (YOLOv3 + Camelot)
 
-There exist many python librairies which enable the parsing of pdfs, `Camelot` is one of the best. Although it performs well on text, however, it struggles on tables specially the ones localized inside paragraphs. <br> Camelot offers the option of specifying the regions to parse through the variable `table_areas="x1,y1,x2,y2"` where (x1, y1) is left-top and (x2, y2) right-bottom in PDF coordinate space. When filled out, the result is significantly enhanced. 
+Automatically detect and extract tables from PDF documents. A fine-tuned
+**YOLOv3** model locates table regions on a rendered page, and
+[**Camelot**](https://camelot-py.readthedocs.io/) extracts the cell-level data
+from those regions into pandas DataFrames / Excel files.
 
-## Explaining the basic idea
-One way to automize the parsing of tables is to train an algorithm capable of returning the coordinates of the bounding boxe circling the table, as detailled in the following pipeline:
+> Camelot parses tables very well *when told where they are* (via
+> `table_areas="x1,y1,x2,y2"`). Locating the table automatically is the hard
+> part — that's what the YOLOv3 detector solves here.
 
 <center><img src="imgs/pipeline.png"></center>
 
-If the primitive pdf page is image-based, we can use `ocrmypdf` to turn into a text-based one in order to be able to get the text inside of the table. We, then, carry out the following operations:
-* Transform a pdf page into an image one using `pdf2img`
-* Use a trained algorithm to detect the regions of tables. 
-* Normalize the bounding boxes, using the *image dimension*, which enables use to get the regions in the pdf space using the *pdf dimensions* obtained through `PyPDF2`. 
-* Feed the regions to `camelot` and get the corresponding pandas dataframes.
+## How it works
 
-<br>When detecting a table in pdf image we expand the bounding boxe in order to guarante its full inclusion, as follows:
+For a given PDF page the pipeline:
 
+1. **Renders** the page to an image (`pdf2image`). Image-only PDFs can be made
+   text-based first with `ocrmypdf`.
+2. **Detects** table bounding boxes with YOLOv3-tiny (single class: `table`).
+3. **Maps** each box from image pixel space into PDF coordinate space,
+   expanding it slightly so the whole table is enclosed.
 
-<center><img src="imgs/correction.png"></center>
+   <center><img src="imgs/correction.png"></center>
 
-## Tables detection
-The algorithm which allows the detection of tables, is nothing but yolov3, I advise your to read my previous [article](https://medium.com/swlh/object-detection-face-recognition-algorithms-146fec385205) about objects detection.
-We finetune the algorithm to detect tables and retrain all the architecture.
-To do so, we carry out the following steps:
-* Create a training database using [`Makesense`](https://www.makesense.ai/) a tool which enables an export in yolo's format:
+4. **Extracts** each region with Camelot and returns one DataFrame per table.
 
-<center><img src="imgs/makesense.png"></center>
+The detector was fine-tuned on table annotations created with
+[Makesense.ai](https://www.makesense.ai/) (YOLO export format) using a modified
+[`ultralytics/yolov3`](https://github.com/ultralytics/yolov3) training setup.
 
-* Train a [`yolov3`](https://www.ismailmebsout.com/Convolutional%20Neural%20Network%20-%20Part%202/#yolov3-algorithm) [`repository`](https://github.com/ultralytics/yolov3) modified to fit our purpose on AWS EC2, we get the following results:
+## Project layout
 
-<center><img src="imgs/results.png"></center>
- 
-## Requirements
-All python requirements are included in the file package.txt, all you need to do is run the following command line:
-
-```bash
-pip install -r packages.txt
+```
+.
+├── pdf_table_extractor/        # Application package
+│   ├── config.py               # YoloConfig dataclass (paths, thresholds)
+│   ├── geometry.py             # Pure coordinate-mapping logic (fully unit-tested)
+│   ├── detector.py             # TableDetector — wraps the YOLO engine
+│   ├── pipeline.py             # extract_tables(): render → detect → map → Camelot
+│   ├── api.py                  # FastAPI app (HTTP interface)
+│   ├── cli.py                  # Command-line interface
+│   └── yolo/                   # Vendored YOLOv3 engine (third-party, untouched)
+├── assets/                     # Model weights, cfg and class names
+├── tests/                      # pytest suite (geometry, pipeline, API)
+├── pyproject.toml              # Packaging + black/ruff/pytest config
+├── requirements*.txt           # Runtime / dev dependencies
+├── Dockerfile · Makefile
 ```
 
-## Prediction
-It is possible to make prediction on a pdf page using the following command line:
+The `pdf_table_extractor/yolo/` package is vendored third-party model code and
+is intentionally excluded from formatting/linting.
+
+## Installation
+
+System dependencies: **Ghostscript** (Camelot) and **Poppler** (`pdf2image`).
+
 ```bash
-python predict_table.py --pdf_path pdfs/boeings.pdf --page 2
+# macOS
+brew install ghostscript poppler
+
+# Debian/Ubuntu
+sudo apt-get install ghostscript poppler-utils
 ```
-It takes two arguments:
-* **pdf_path**: where the original pdf file is located
-* **page**: the desired page to parse
+
+Python:
+
+```bash
+pip install -r requirements.txt
+# or, as an installable package with the console script:
+pip install .
+```
+
+## Usage
+
+### Python
+
+```python
+from pdf_table_extractor import extract_tables
+
+result = extract_tables("doc.pdf", page=2)
+print(result.num_tables)
+for df in result.tables:        # list of pandas DataFrames
+    print(df)
+result.save_excel("out/")       # one .xlsx per table
+```
+
+### Command line
+
+```bash
+pdf-table-extractor --pdf-path doc.pdf --page 2 --out-dir out/
+# equivalently:
+python -m pdf_table_extractor.cli --pdf-path doc.pdf --page 2
+```
+
+### HTTP API
+
+```bash
+pip install -r requirements.txt          # includes FastAPI + uvicorn
+uvicorn pdf_table_extractor.api:app --reload
+```
+
+| Method | Path             | Description                              |
+|--------|------------------|------------------------------------------|
+| GET    | `/health`        | Liveness probe                           |
+| POST   | `/extract?page=N`| Upload a PDF, returns detected tables JSON |
+
+```bash
+curl -F "file=@doc.pdf" "http://localhost:8000/extract?page=2"
+```
+
+Interactive docs are served at `http://localhost:8000/docs`.
+
+### Docker
+
+```bash
+docker build -t pdf-table-extractor .
+docker run -p 8000:8000 pdf-table-extractor
+```
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+
+make format    # black
+make lint      # ruff + black --check
+make test      # pytest
+```
+
+The test suite mocks the heavy boundaries (torch / Camelot / pdf2image), so it
+runs fast and without GPU or those optional dependencies installed. The pure
+coordinate math in `geometry.py` is tested against known numeric values.
 
 ## Examples
 
+A runnable, end-to-end demo lives in [`examples/`](examples/): it generates a
+sample invoice PDF, runs the pipeline and saves the detected-box overlay plus the
+extracted tables (`.xlsx`/`.csv`/`.json`). See [examples/README.md](examples/README.md).
+
+```bash
+python examples/run_pipeline.py
+```
+
+![example detection](examples/output/detected_boxes.png)
+
 <center><img src="imgs/examples.jpg"></center>
 
-**NB**: following the same steps, we can train the algorithms to detect `any other object` in a pdf page such as graphics and images which can be extracted from the image page.
+> **NB:** following the same steps, the detector can be trained to find *any*
+> object on a PDF page (figures, charts, signatures, …) and extract it.
+
+## License
+
+MIT.

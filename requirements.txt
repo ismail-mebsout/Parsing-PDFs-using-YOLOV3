@@ -1,0 +1,18 @@
+# Core runtime dependencies.
+# Pin/relax to taste; these ranges are known to work with the bundled engine.
+torch>=1.8
+torchvision>=0.9
+opencv-python>=4.5
+numpy>=1.18
+pandas>=1.0
+Pillow>=8.0
+tqdm>=4.40
+camelot-py>=0.8
+pdf2image>=1.14
+PyPDF2>=3.0
+openpyxl>=3.0
+
+# HTTP API (optional but installed by default for convenience).
+fastapi>=0.100
+uvicorn>=0.20
+python-multipart>=0.0.6

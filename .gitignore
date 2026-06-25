@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Pipeline outputs
+outputs/
+*.xlsx
+*.jpg
+*.png
+!imgs/*.png
+!imgs/*.jpg
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+
+# Model weight backups
+*.weights.old
+
+# Keep the committed example inputs and generated artifacts
+!examples/**

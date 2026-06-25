@@ -1,0 +1,9 @@
+# Development & testing tools. Install with: pip install -r requirements-dev.txt
+-r requirements.txt
+
+pytest>=7.0
+pytest-cov>=4.0
+black>=24.0
+ruff>=0.4
+httpx>=0.27
+reportlab>=4.0  # only used by examples/make_sample_pdf.py

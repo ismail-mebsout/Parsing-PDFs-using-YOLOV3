@@ -1,0 +1,8 @@
+Item,Qty,Unit Price,Total
+Widget A,10,12.50,125.00
+Widget B,4,30.00,120.00
+Gadget X,2,75.25,150.50
+Service Fee,1,40.00,40.00
+Subtotal,,,435.50
+Tax (8%),,,34.84
+Grand Total,,,470.34

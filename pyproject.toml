@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf-table-extractor"
+version = "1.0.0"
+description = "Detect and extract tables from PDF documents using YOLOv3 + Camelot."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Ismail Mebsout" }]
+keywords = ["pdf", "table-extraction", "yolov3", "camelot", "computer-vision"]
+
+dependencies = [
+    "torch>=1.8",
+    "torchvision>=0.9",
+    "opencv-python>=4.5",
+    "numpy>=1.18",
+    "pandas>=1.0",
+    "Pillow>=8.0",
+    "tqdm>=4.40",
+    "camelot-py>=0.8",
+    "pdf2image>=1.14",
+    "PyPDF2>=3.0",
+    "openpyxl>=3.0",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100", "uvicorn>=0.20", "python-multipart>=0.0.6"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=24.0",
+    "ruff>=0.4",
+    "httpx>=0.27",
+    "fastapi>=0.100",
+    "python-multipart>=0.0.6",
+]
+
+[project.scripts]
+pdf-table-extractor = "pdf_table_extractor.cli:main"
+
+[tool.setuptools]
+packages = ["pdf_table_extractor", "pdf_table_extractor.yolo"]
+
+[tool.setuptools.package-data]
+"pdf_table_extractor" = []
+
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311"]
+# The vendored YOLOv3 engine is third-party; leave it untouched.
+extend-exclude = "pdf_table_extractor/yolo/"
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+# Do not lint the vendored engine or virtualenvs.
+extend-exclude = ["pdf_table_extractor/yolo"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # line length is handled by black
+    "B008",  # FastAPI idiom: Depends()/File()/Query() in argument defaults
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
